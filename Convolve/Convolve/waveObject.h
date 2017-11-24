@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <vector>
+#include <fstream>
+
 
 using namespace std;
 
@@ -66,7 +68,10 @@ private:
 
 	
 	const char * pathToWaveFile;
-	FILE * f;
+	ifstream in;
+	ofstream out;
+
+
 
 	bool getRiffChunkFromFile();
 	bool getFormatChunkFromFile();
