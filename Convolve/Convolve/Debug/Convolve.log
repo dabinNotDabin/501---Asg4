@@ -1,3 +1,6 @@
 ﻿  WaveObject.cpp
+c:\uofc\cpsc501\asg4\a4workspace\convolve\convolve\waveobject.cpp(27): warning C4390: ';': empty controlled statement found; is this the intent?
+c:\uofc\cpsc501\asg4\a4workspace\convolve\convolve\waveobject.cpp(314): warning C4101: 'array': unreferenced local variable
+c:\uofc\cpsc501\asg4\a4workspace\convolve\convolve\waveobject.cpp(393): warning C4101: 'array': unreferenced local variable
   Convolve.vcxproj -> C:\UofC\CPSC501\asg4\a4Workspace\Convolve\Debug\Convolve.exe
   Convolve.vcxproj -> C:\UofC\CPSC501\asg4\a4Workspace\Convolve\Debug\Convolve.pdb (Partial PDB)

@@ -16,20 +16,25 @@ WaveObject::~WaveObject()
 }
 
 
-vector<short> WaveObject::getAudioDataFromFile(const char * filePath)
+vector<char> WaveObject::getAudioDataFromFile(const char * filePath)
 {
+	vector<char> data;
+
 	if (!associateFile(filePath))
-		return vector<short>();
+		return data;
 
 	if (!getWaveDataFromFile())
-		return vector<short>();
+		;
+		//		return data;
 
 	if (formatChunk.bitsPerSample == 16)
-		return 	vector<short>(dataChunkTwoByte.dataShorts);
+	{
+		return vector<char>(dataChunkTwoByte.data, dataChunkTwoByte.data + dataChunkTwoByte.audioDataSize);
+	}
 	else
 		cout << "Only support for data formatted at 16 bits per sample.\n";
 
-	return vector<short>();
+	return data;
 }
 
 
@@ -53,14 +58,16 @@ bool WaveObject::associateFile(const char * filePath)
 
 bool WaveObject::getRiffChunkFromFile()
 {
-	in.open(pathToWaveFile, in.in);
+	in.open(pathToWaveFile, fstream::in);
 
-	if (!in.good())
+	if (!in.is_open())
 	{
 		cout << "Failed to open file to fetch riff chunk.\n";
 		in.close();
 		return false;
 	}
+
+	noskipws(in);
 
 	in.read (riffChunk.ID, 4);
 	riffChunk.ID[4] = '\0';
@@ -84,14 +91,16 @@ bool WaveObject::getRiffChunkFromFile()
 
 bool WaveObject::getFormatChunkFromFile()
 {
-	in.open(pathToWaveFile, in.in);
+	in.open(pathToWaveFile, fstream::in);
 
-	if (!in.good())
+	if (!in.is_open())
 	{
 		cout << "Failed to open file to fetch format chunk.\n";
 		in.close();
 		return false;
 	}
+
+	noskipws(in);
 
 	in.seekg(12, in.beg);
 
@@ -120,14 +129,16 @@ bool WaveObject::getFormatChunkFromFile()
 
 bool WaveObject::getDataChunkFromFile()
 {
-	in.open(pathToWaveFile, in.in);
+	in.open(pathToWaveFile, fstream::in);
 
-	if (!in.good())
+	if (!in.is_open())
 	{
 		cout << "Failed to open file to fetch data chunk.\n";
 		in.close();
 		return false;
 	}
+
+	noskipws(in);
 
 	int start = 20 + formatChunk.fmtChunkSize;
 
@@ -142,8 +153,17 @@ bool WaveObject::getDataChunkFromFile()
 	size_t count = dataChunkTwoByte.audioDataSize;
 	dataChunkTwoByte.dataShorts.reserve (count/2);
 
+	dataChunkTwoByte.data = new unsigned char[dataChunkTwoByte.audioDataSize];
+
+	in.read((char*)dataChunkTwoByte.data, dataChunkTwoByte.audioDataSize);
+
+	in.close();
+	in.open(pathToWaveFile, fstream::in);
+
+	in.seekg(start + 8, in.beg);
+
 	unsigned int i = 0;
-	while ( (i < dataChunkTwoByte.audioDataSize) )
+	while ( (i < count) )
 	{
 		int val = getShortLittleEndian();
 		dataChunkTwoByte.dataShorts.push_back(val);
@@ -152,6 +172,8 @@ bool WaveObject::getDataChunkFromFile()
 		if (i == 42988)
 			cout << "here\n";
 	}
+
+	checkStreamStatus();
 
 	if (!in.good())
 	{
@@ -179,14 +201,16 @@ bool WaveObject::getWaveDataFromFile()
 
 bool WaveObject::fileIsRiff()
 {
-	in.open(pathToWaveFile, in.in);
+	in.open(pathToWaveFile, fstream::in);
 
-	if (!in.good())
+	if (!in.is_open())
 	{
 		cout << "Failed to open file.\n";
 		in.close();
 		return false;
 	}
+
+	noskipws(in);
 
 	char expected[] = "RIFF";
 
@@ -202,14 +226,16 @@ bool WaveObject::fileIsRiff()
 
 bool WaveObject::fileIsWave()
 {
-	in.open(pathToWaveFile, in.in);
+	in.open(pathToWaveFile, fstream::in);
 
-	if (!in.good())
+	if (!in.is_open())
 	{
 		cout << "Failed to open file.\n";
 		in.close();
 		return false;
 	}
+
+	noskipws(in);
 
 	char expected[] = "WAVE";
 
@@ -226,14 +252,16 @@ bool WaveObject::fileIsWave()
 
 bool WaveObject::fileIsPCM()
 {
-	in.open(pathToWaveFile, in.in);
+	in.open(pathToWaveFile, fstream::in);
 
-	if (!in.good())
+	if (!in.is_open())
 	{
 		cout << "Failed to open file.\n";
 		in.close();
 		return false;
 	}
+
+	noskipws(in);
 
 	in.seekg(20, in.beg);
 
@@ -249,7 +277,7 @@ bool WaveObject::fileIsPCM()
 int WaveObject::getIntBigEndian()
 {
 	char array[4];
-	int x = 0;
+	unsigned int x = 0;
 
 	if (in.eof())
 	{
@@ -262,6 +290,8 @@ int WaveObject::getIntBigEndian()
 		cout << "Fail bit set.\n";
 		in.clear();
 	}
+
+	noskipws(in);
 
 	in.read (array, 4);
 
@@ -296,13 +326,26 @@ int WaveObject::getIntLittleEndian()
 		in.clear();
 	}
 
-	in.read (array, 4);
+	noskipws(in);
 
+//	in.read (array, 4);
+
+	char c;
 	unsigned char uArray[4];
-	uArray[0] = array[0];
-	uArray[1] = array[1];
-	uArray[2] = array[2];
-	uArray[3] = array[3];
+
+	in.get(c);
+	uArray[0] = c;
+	in.get(c);
+	uArray[1] = c;
+	in.get(c);
+	uArray[2] = c;
+	in.get(c);
+	uArray[3] = c;
+
+	//uArray[0] = array[0];
+	//uArray[1] = array[1];
+	//uArray[2] = array[2];
+	//uArray[3] = array[3];
 
 	x = (uArray[0] << 0) + (uArray[1] << 8) + (uArray[2] << 16) + (uArray[3] << 24);
 
@@ -315,7 +358,7 @@ int WaveObject::getIntLittleEndian()
 short WaveObject::getShortBigEndian()
 {
 	char array[2];
-	short x = 0;
+	unsigned short x = 0;
 
 	if (in.eof())
 	{
@@ -328,6 +371,8 @@ short WaveObject::getShortBigEndian()
 		cout << "Fail bit set.\n";
 		in.clear();
 	}
+
+	noskipws(in);
 
 	in.read (array, 2);
 
@@ -346,27 +391,62 @@ short WaveObject::getShortBigEndian()
 short WaveObject::getShortLittleEndian()
 {
 	char array[2];
-	short x = 0;
+	unsigned short x = 0;
 
-	if (in.eof())
+	if (!in.is_open())
 	{
-		cout << "EOF bit set.\n";
-		in.clear();
+		cout << "Failed to open file.\n";
+		in.close();
+		return false;
 	}
 
-	if (in.fail())
-	{
-		cout << "Fail bit set.\n";
-		in.clear();
-	}
+	checkStreamStatus();
 
-	in.read (array, 2);
+	cout << "Position in file: " << in.tellg() << endl;
 
+//	in.read (array, 2);
+
+	noskipws(in);
+
+	char c;
 	unsigned char uArray[2];
-	uArray[0] = array[0];
-	uArray[1] = array[1];
+
+	if (in.peek() != 0)
+		cout << in.peek();
+	in.get(c);
+	uArray[0] = c;
+	checkStreamStatus();
+	if (in.peek() != 0)
+		cout << in.peek();
+	in.get(c);
+	uArray[1] = c;
+	checkStreamStatus();
+	cout << endl;
+	//uArray[0] = array[0];
+	//uArray[1] = array[1];
 
 	x = (uArray[0] << 0) + (uArray[1] << 8);
 
 	return x;
 }
+
+
+
+void WaveObject::checkStreamStatus()
+{
+	if (in.eof())
+	{
+		cout << "EOF bit set.\n";
+	}
+
+	if (in.fail())
+	{
+		cout << "Fail bit set.\n";
+	}
+
+	if (in.bad())
+	{
+		cout << "Bad bit set.\n";
+	}
+}
+

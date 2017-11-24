@@ -90,12 +90,14 @@ private:
 	short getShortLittleEndian();
 	short getShortBigEndian();
 
+	void checkStreamStatus();
+
 public:
 
 	WaveObject();
 	~WaveObject();
 
 
-	vector<short> getAudioDataFromFile(const char * filePath);
+	vector<char> getAudioDataFromFile(const char * filePath);
 
 };
