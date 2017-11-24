@@ -93,6 +93,8 @@ bool WaveObject::getFormatChunkFromFile()
 		return false;
 	}
 
+	in.seekg(12, in.beg);
+
 	in.read(formatChunk.ID, 4);
 	formatChunk.ID[4] = '\0';
 
@@ -129,7 +131,9 @@ bool WaveObject::getDataChunkFromFile()
 
 	int start = 20 + formatChunk.fmtChunkSize;
 
-	in.read = (dataChunkTwoByte.ID, 4);
+	in.seekg(start, in.beg);
+
+	in.read(dataChunkTwoByte.ID, 4);
 	dataChunkTwoByte.ID[4] = '\0';
 
 	dataChunkTwoByte.audioDataSize = getIntLittleEndian();
@@ -138,12 +142,15 @@ bool WaveObject::getDataChunkFromFile()
 	size_t count = dataChunkTwoByte.audioDataSize;
 	dataChunkTwoByte.dataShorts.reserve (count/2);
 
-	int i = 0;
+	unsigned int i = 0;
 	while ( (i < dataChunkTwoByte.audioDataSize) )
 	{
 		int val = getShortLittleEndian();
 		dataChunkTwoByte.dataShorts.push_back(val);
 		i++;
+
+		if (i == 42988)
+			cout << "here\n";
 	}
 
 	if (!in.good())
@@ -162,21 +169,9 @@ bool WaveObject::getWaveDataFromFile()
 {
 	bool success;
 
-	in.open(pathToWaveFile, in.in);
-
-	if (!in.good())
-	{
-		cout << "Failed to open file to get wave data.\n";
-		in.close();
-		return false;
-	}
-
-
 	success = getRiffChunkFromFile();
 	success = getFormatChunkFromFile();
 	success = getDataChunkFromFile();
-
-	in.close();
 
 	return success;
 }
@@ -196,7 +191,7 @@ bool WaveObject::fileIsRiff()
 	char expected[] = "RIFF";
 
 	// Read 4 elements, 1 byte in size, from f and store in riffChunk.ID
-	in.read = (riffChunk.ID, 4);
+	in.read (riffChunk.ID, 4);
 	riffChunk.ID[4] = '\0';
 
 	in.close();
@@ -218,7 +213,7 @@ bool WaveObject::fileIsWave()
 
 	char expected[] = "WAVE";
 
-	in.seekg(12, in.beg);
+	in.seekg(8, in.beg);
 
 	in.read (riffChunk.format, 4);
 	riffChunk.format[4] = '\0';
@@ -253,24 +248,30 @@ bool WaveObject::fileIsPCM()
 // This function advances the file stream position indicator by 4 bytes
 int WaveObject::getIntBigEndian()
 {
-	unsigned char array[4];
+	char array[4];
 	int x = 0;
 
-	if (in.eof)
+	if (in.eof())
 	{
 		cout << "EOF bit set.\n";
 		in.clear();
 	}
 
-	if (in.fail)
+	if (in.fail())
 	{
 		cout << "Fail bit set.\n";
 		in.clear();
 	}
 
-	in.read = (array, 4);
+	in.read (array, 4);
 
-	x = (array[3] << 0) + (array[2] << 8) + (array[1] << 16) + (array[0] << 24);
+	unsigned char uArray[4];
+	uArray[0] = array[0];
+	uArray[1] = array[1];
+	uArray[2] = array[2];
+	uArray[3] = array[3];
+
+	x = (uArray[3] << 0) + (uArray[2] << 8) + (uArray[1] << 16) + (uArray[0] << 24);
 
 	return x;
 }
@@ -280,24 +281,30 @@ int WaveObject::getIntBigEndian()
 // This function advances the file stream position indicator by 4 bytes
 int WaveObject::getIntLittleEndian()
 {
-	unsigned char array[4];
-	int x = 0;
+	char array[4];
+	unsigned int x = 0;
 
-	if (in.eof)
+	if (in.eof())
 	{
 		cout << "EOF bit set.\n";
 		in.clear();
 	}
 
-	if (in.fail)
+	if (in.fail())
 	{
 		cout << "Fail bit set.\n";
 		in.clear();
 	}
 
-	in.read = (array, 4);
+	in.read (array, 4);
 
-	x = (array[0] << 0) + (array[1] << 8) + (array[2] << 16) + (array[3] << 24);
+	unsigned char uArray[4];
+	uArray[0] = array[0];
+	uArray[1] = array[1];
+	uArray[2] = array[2];
+	uArray[3] = array[3];
+
+	x = (uArray[0] << 0) + (uArray[1] << 8) + (uArray[2] << 16) + (uArray[3] << 24);
 
 	return x;
 }
@@ -307,24 +314,28 @@ int WaveObject::getIntLittleEndian()
 // This function advances the file stream position indicator by 2 bytes
 short WaveObject::getShortBigEndian()
 {
-	unsigned char array[2];
+	char array[2];
 	short x = 0;
 
-	if (in.eof)
+	if (in.eof())
 	{
 		cout << "EOF bit set.\n";
 		in.clear();
 	}
 
-	if (in.fail)
+	if (in.fail())
 	{
 		cout << "Fail bit set.\n";
 		in.clear();
 	}
 
-	in.read = (array, 2);
+	in.read (array, 2);
 
-	x = (array[1] << 0) + (array[0] << 8);
+	unsigned char uArray[2];
+	uArray[0] = array[0];
+	uArray[1] = array[1];
+
+	x = (uArray[1] << 0) + (uArray[0] << 8);
 
 	return x;
 }
@@ -334,24 +345,28 @@ short WaveObject::getShortBigEndian()
 // This function advances the file stream position indicator by 2 bytes
 short WaveObject::getShortLittleEndian()
 {
-	unsigned char array[2];
+	char array[2];
 	short x = 0;
 
-	if (in.eof)
+	if (in.eof())
 	{
 		cout << "EOF bit set.\n";
 		in.clear();
 	}
 
-	if (in.fail)
+	if (in.fail())
 	{
 		cout << "Fail bit set.\n";
 		in.clear();
 	}
 
-	in.read = (array, 2);
+	in.read (array, 2);
 
-	x = (array[0] << 0) + (array[1] << 8);
+	unsigned char uArray[2];
+	uArray[0] = array[0];
+	uArray[1] = array[1];
+
+	x = (uArray[0] << 0) + (uArray[1] << 8);
 
 	return x;
 }

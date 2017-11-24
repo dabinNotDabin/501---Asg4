@@ -39,9 +39,7 @@ typedef struct
 {
 	char			ID[5];
 	unsigned int	audioDataSize;
-//	short *			data;
 	unsigned char * data;
-	unsigned char * dataLarge;
 	vector<short>	dataShorts;
 
 } DataChunkTwoByte;
