@@ -17,11 +17,11 @@ int main(int argc, const char ** argv)
 
 	WaveObject w;
 
-	vector <char> data = w.getAudioDataFromFile(argv[1]);
+	vector <int16_t> data = w.getAudioDataFromFile(argv[1]);
 
 
-	for (int i = 0; i < data.size(); i++)
-		cout << i << ": " << data[i] << endl;
+//	for (int i = 0; i < data.size(); i++)
+//		cout << i << ": " << data[i] << endl;
 
 
 	int x;

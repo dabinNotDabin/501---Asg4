@@ -39,8 +39,7 @@ typedef struct
 {
 	char			ID[5];
 	unsigned int	audioDataSize;
-	unsigned char * data;
-	vector<short>	dataShorts;
+	vector<int16_t>	dataShorts;
 
 } DataChunkTwoByte;
 
@@ -98,6 +97,6 @@ public:
 	~WaveObject();
 
 
-	vector<char> getAudioDataFromFile(const char * filePath);
+	vector<int16_t> getAudioDataFromFile(const char * filePath);
 
 };

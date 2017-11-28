@@ -1,5 +1,7 @@
 #include "waveObject.h"
-#include <windows.h>
+#include <string.h>
+#include <stdint.h>
+#include <unistd.h>
 
 
 
@@ -16,9 +18,9 @@ WaveObject::~WaveObject()
 }
 
 
-vector<char> WaveObject::getAudioDataFromFile(const char * filePath)
+vector<int16_t> WaveObject::getAudioDataFromFile(const char * filePath)
 {
-	vector<char> data;
+	vector<int16_t> data;
 
 	if (!associateFile(filePath))
 		return data;
@@ -29,7 +31,7 @@ vector<char> WaveObject::getAudioDataFromFile(const char * filePath)
 
 	if (formatChunk.bitsPerSample == 16)
 	{
-		return vector<char>(dataChunkTwoByte.data, dataChunkTwoByte.data + dataChunkTwoByte.audioDataSize);
+		return dataChunkTwoByte.dataShorts;
 	}
 	else
 		cout << "Only support for data formatted at 16 bits per sample.\n";
@@ -58,7 +60,7 @@ bool WaveObject::associateFile(const char * filePath)
 
 bool WaveObject::getRiffChunkFromFile()
 {
-	in.open(pathToWaveFile, fstream::in);
+	in.open(pathToWaveFile, ios::in | ios::binary);
 
 	if (!in.is_open())
 	{
@@ -91,7 +93,7 @@ bool WaveObject::getRiffChunkFromFile()
 
 bool WaveObject::getFormatChunkFromFile()
 {
-	in.open(pathToWaveFile, fstream::in);
+	in.open(pathToWaveFile, ios::in | ios::binary);
 
 	if (!in.is_open())
 	{
@@ -129,7 +131,7 @@ bool WaveObject::getFormatChunkFromFile()
 
 bool WaveObject::getDataChunkFromFile()
 {
-	in.open(pathToWaveFile, fstream::in);
+	in.open(pathToWaveFile, ios::in | ios::binary);
 
 	if (!in.is_open())
 	{
@@ -147,30 +149,26 @@ bool WaveObject::getDataChunkFromFile()
 	in.read(dataChunkTwoByte.ID, 4);
 	dataChunkTwoByte.ID[4] = '\0';
 
+	cout << "Data chunk id: " << dataChunkTwoByte.ID << endl;
+
 	dataChunkTwoByte.audioDataSize = getIntLittleEndian();
+
+	cout << "Data chunk size: " << dataChunkTwoByte.audioDataSize << endl;
 
 	// dataChunk.size is size of audio data in bytes
 	size_t count = dataChunkTwoByte.audioDataSize;
 	dataChunkTwoByte.dataShorts.reserve (count/2);
-
-	dataChunkTwoByte.data = new unsigned char[dataChunkTwoByte.audioDataSize];
-
-	in.read((char*)dataChunkTwoByte.data, dataChunkTwoByte.audioDataSize);
-
-	in.close();
-	in.open(pathToWaveFile, fstream::in);
-
-	in.seekg(start + 8, in.beg);
-
+	
 	unsigned int i = 0;
-	while ( (i < count) )
+	int16_t sample;
+	while ( (i < count/2) )
 	{
-		int val = getShortLittleEndian();
-		dataChunkTwoByte.dataShorts.push_back(val);
-		i++;
+		sleep(1);
+		in.read((char*) &sample, 2);
+		cout << i << " " << sample << endl;
 
-		if (i == 42988)
-			cout << "here\n";
+		dataChunkTwoByte.dataShorts.push_back(sample);
+		i++;
 	}
 
 	checkStreamStatus();
@@ -201,7 +199,7 @@ bool WaveObject::getWaveDataFromFile()
 
 bool WaveObject::fileIsRiff()
 {
-	in.open(pathToWaveFile, fstream::in);
+	in.open(pathToWaveFile, ios::in | ios::binary);
 
 	if (!in.is_open())
 	{
@@ -226,7 +224,7 @@ bool WaveObject::fileIsRiff()
 
 bool WaveObject::fileIsWave()
 {
-	in.open(pathToWaveFile, fstream::in);
+	in.open(pathToWaveFile, ios::in | ios::binary);
 
 	if (!in.is_open())
 	{
@@ -252,7 +250,7 @@ bool WaveObject::fileIsWave()
 
 bool WaveObject::fileIsPCM()
 {
-	in.open(pathToWaveFile, fstream::in);
+	in.open(pathToWaveFile, ios::in | ios::binary);
 
 	if (!in.is_open())
 	{
@@ -311,7 +309,7 @@ int WaveObject::getIntBigEndian()
 // This function advances the file stream position indicator by 4 bytes
 int WaveObject::getIntLittleEndian()
 {
-	char array[4];
+//	char array[4];
 	unsigned int x = 0;
 
 	if (in.eof())
@@ -390,7 +388,7 @@ short WaveObject::getShortBigEndian()
 // This function advances the file stream position indicator by 2 bytes
 short WaveObject::getShortLittleEndian()
 {
-	char array[2];
+//	char array[2];
 	unsigned short x = 0;
 
 	if (!in.is_open())
